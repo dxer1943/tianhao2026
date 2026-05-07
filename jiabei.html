@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>加班时间记录</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary: #4a6cf7;
+            --primary-hover: #3651d5;
+            --text: #1e293b;
+            --text-secondary: #475569;
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+            --shadow: 0 4px 20px rgba(0,0,0,0.05);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: 0.2s ease;
+            --weekday: #3b82f6;
+            --weekend: #f59e0b;
+            --holiday: #ef4444;
+            --import: #6366f1;
+            --connected: #059669;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{
+            font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+            background:var(--bg);
+            display:flex;
+            align-items:center;          /* 垂直居中 */
+            justify-content:center;
+            min-height:100vh;           /* 以包含地址栏的完整屏幕高度为基准 */
+            padding:16px 8px;
+            background-image:radial-gradient(ellipse at 25% 25%, rgba(74,108,247,0.03) 0%,transparent 60%),
+            radial-gradient(ellipse at 70% 60%, rgba(245,158,11,0.03) 0%,transparent 60%);
+        }
+        .container{
+            background:var(--card-bg);
+            border-radius:var(--radius);
+            box-shadow:var(--shadow);
+            padding:18px 16px 12px;
+            width:100%;
+            max-width:520px;
+            transition:var(--transition);
+        }
+        .date-header{
+            display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:6px;
+            border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;
+        }
+        .date-main{display:flex;align-items:center;gap:8px;}
+        .date-display{font-size:1.35rem;font-weight:700;color:var(--text);}
+        .weekday-badge{display:inline-block;font-size:0.7rem;font-weight:600;color:#fff;background:var(--primary);padding:1px 12px;border-radius:20px;}
+        .weekday-badge.weekend{background:var(--weekend);}
+        .date-input{font-size:0.8rem;padding:4px 8px;border-radius:6px;border:1px solid var(--border);}
+        .stats-row{display:flex;gap:6px;margin-bottom:8px;}
+        .stat-card{
+            flex:1;background:#f8fafc;border:1px solid var(--border);border-radius:var(--radius-sm);
+            padding:6px 4px;text-align:center;cursor:pointer;transition:var(--transition);user-select:none;
+        }
+        .stat-card:hover{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.08);transform:translateY(-1px);}
+        .stat-card.weekday{border-left:3px solid var(--weekday);}
+        .stat-card.weekend{border-left:3px solid var(--weekend);}
+        .stat-card.holiday{border-left:3px solid var(--holiday);}
+        .stat-label{font-size:0.65rem;font-weight:700;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:2px;}
+        .stat-value{font-size:1.1rem;font-weight:700;}
+        .stat-value.weekday-val{color:var(--weekday);}
+        .stat-value.weekend-val{color:var(--weekend);}
+        .stat-value.holiday-val{color:var(--holiday);}
+        .stat-unit{font-size:0.6rem;font-weight:500;color:var(--text-secondary);margin-left:1px;}
+        .summary-row{
+            display:flex;align-items:center;justify-content:center;background:#f1f5f9;
+            border-radius:8px;padding:5px 8px;margin-bottom:6px;font-size:0.7rem;
+            font-weight:600;color:var(--text-secondary);gap:4px;white-space:nowrap;
+        }
+        .summary-row .total-value{font-size:0.85rem;font-weight:700;color:var(--primary);}
+        .last-month-row{background:#eef2ff;}
+        .sunday-hint{
+            text-align:center;font-size:0.7rem;font-weight:600;color:var(--weekend);
+            background:#fff7ed;border-radius:6px;padding:4px 8px;margin-bottom:6px;display:none;
+        }
+        .time-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+        .time-block{flex:1;min-width:120px;}
+        .time-block label{display:block;font-size:0.7rem;font-weight:600;color:var(--text-secondary);margin-bottom:3px;}
+        .time-block select{
+            width:100%;padding:10px 30px 10px 10px;font-size:1rem;font-weight:500;
+            color:var(--text);background:#f0f4ff;border:2px solid var(--primary);
+            border-radius:8px;cursor:pointer;appearance:none;-webkit-appearance:none;
+            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a6cf7' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat:no-repeat;background-position:right 10px center;min-height:42px;
+            box-shadow:0 2px 8px rgba(74,108,247,0.15);transition:var(--transition);
+        }
+        .time-block select:focus{outline:none;box-shadow:0 0 0 3px rgba(74,108,247,0.25);}
+        .time-separator{font-size:1.2rem;font-weight:700;color:var(--text-secondary);padding-top:16px;}
+        .options-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;font-size:0.75rem;}
+        .holiday-check{display:flex;align-items:center;gap:4px;cursor:pointer;font-weight:600;}
+        .holiday-check input{width:16px;height:16px;accent-color:var(--holiday);}
+        .live-hours{
+            display:flex;align-items:center;justify-content:center;gap:6px;
+            background:#fffbeb;border:2px dashed #fcd34d;padding:6px 10px;
+            border-radius:var(--radius-sm);margin-bottom:8px;
+        }
+        .live-hours .hours-num{font-size:1.7rem;font-weight:700;color:#d97706;}
+        .live-hours.warning .hours-num{color:#dc2626;}
+        .category-tag{font-size:0.65rem;font-weight:600;padding:2px 8px;border-radius:12px;}
+        .tag-weekday{background:#dbeafe;color:#1e40af;}
+        .tag-weekend{background:#fef3c7;color:#92400e;}
+        .tag-holiday{background:#fee2e2;color:#991b1b;}
+        .btn-save{
+            width:100%;padding:12px 16px;font-size:0.95rem;font-weight:600;
+            color:#fff;background:var(--primary);border:none;border-radius:var(--radius-sm);
+            cursor:pointer;box-shadow:0 4px 12px rgba(74,108,247,0.25);
+        }
+        .btn-save:disabled{background:#cbd5e1;cursor:not-allowed;box-shadow:none;}
+        .btn-export-group{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+        .btn-export-group button{flex:1;min-width:100px;padding:10px 12px;font-size:0.8rem;font-weight:600;border-radius:8px;cursor:pointer;white-space:nowrap;}
+        .btn-export{color:var(--primary);background:#fff;border:2px solid var(--primary);}
+        .btn-folder{color:#059669;background:#fff;border:2px solid #059669;}
+        .btn-folder.connected{color:#fff;background:var(--connected);border-color:var(--connected);}
+        .btn-folder:disabled{opacity:0.5;cursor:not-allowed;}
+        .btn-import{color:var(--import);background:#fff;border:2px solid var(--import);}
+        .modal-overlay{
+            position:fixed;top:0;left:0;width:100%;height:100%;
+            background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);z-index:1000;
+            display:flex;align-items:center;justify-content:center;
+        }
+        .modal-dialog{
+            background:#fff;border-radius:var(--radius);box-shadow:var(--shadow-lg);
+            padding:20px 16px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto;
+        }
+        .modal-title{font-size:1rem;font-weight:700;margin-bottom:12px;text-align:center;}
+        .modal-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:0.8rem;}
+        .modal-table td{padding:6px 8px;border-bottom:1px solid var(--border);}
+        .modal-buttons{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+        .modal-buttons button{padding:8px 14px;font-size:0.85rem;font-weight:600;border-radius:6px;border:none;cursor:pointer;}
+        .btn-confirm{background:var(--primary);color:#fff;}
+        .btn-cancel{background:#f1f5f9;color:var(--text-secondary);}
+        .btn-danger{background:var(--danger);color:#fff;}
+        .btn-import-confirm{background:var(--import);color:#fff;}
+        .detail-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:6px;}
+        .detail-header select{padding:4px 8px;border-radius:6px;font-size:0.75rem;}
+        .record-list{max-height:180px;overflow-y:auto;margin-bottom:10px;}
+        .record-item{display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid #f1f5f9;font-size:0.75rem;}
+        .record-item .date{font-weight:600;width:75px;}
+        .record-item .time{color:var(--text-secondary);margin:0 6px;}
+        .record-item .hours{font-weight:700;color:var(--primary);}
+        .record-item button{background:none;border:none;cursor:pointer;font-size:0.85rem;margin-left:4px;}
+        .edit-btn{color:var(--primary);}
+        .delete-btn{color:var(--danger);}
+        .sunday-summary{background:#fff7ed;padding:6px 10px;border-radius:6px;font-size:0.75rem;margin-bottom:8px;font-weight:600;color:#92400e;}
+        .import-preview-list{max-height:160px;overflow-y:auto;margin-bottom:10px;font-size:0.72rem;background:#f8fafc;border-radius:6px;padding:6px 8px;line-height:1.7;}
+        .toast{
+            position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+            background:#1e293b;color:#fff;padding:8px 20px;border-radius:30px;
+            font-weight:600;font-size:0.75rem;z-index:2000;opacity:0;transition:0.3s;
+        }
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+        .toast.success{background:#059669;}
+        .toast.error{background:#dc2626;}
+        @media (max-width:480px){
+            body{padding:12px 8px;}
+            .stat-value{font-size:1rem;}
+            .time-block select{padding:8px 24px 8px 8px;font-size:0.9rem;min-height:38px;}
+            .btn-export-group button{min-width:80px;font-size:0.7rem;padding:8px 6px;}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="date-header">
+        <div class="date-main">
+            <div class="date-display" id="dateDisplay">----</div>
+            <div class="weekday-badge" id="weekdayBadge">----</div>
+        </div>
+        <input type="date" id="datePicker" class="date-input">
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card weekday" id="cardWeekday">
+            <div class="stat-label">💼 工作日</div>
+            <span class="stat-value weekday-val" id="weekdayTotal">0.0</span><span class="stat-unit">h</span>
+        </div>
+        <div class="stat-card weekend" id="cardWeekend">
+            <div class="stat-label">🏠 周末</div>
+            <span class="stat-value weekend-val" id="weekendTotal">0.0</span><span class="stat-unit">h</span>
+        </div>
+        <div class="stat-card holiday" id="cardHoliday">
+            <div class="stat-label">🎈 节日</div>
+            <span class="stat-value holiday-val" id="holidayTotal">0.0</span><span class="stat-unit">h</span>
+        </div>
+    </div>
+
+    <div class="summary-row last-month-row">
+        📅 上月加班：总计 <span class="total-value" id="lastMonthGrandTotal">0.0</span>h
+        | 💼<span id="lastWeekdayTotal">0.0</span>  🏠<span id="lastWeekendTotal">0.0</span>  🎈<span id="lastHolidayTotal">0.0</span>
+    </div>
+    <div class="summary-row">
+        📋 本月加班总计：<span class="total-value" id="monthlyGrandTotal">0.0</span> 小时
+    </div>
+
+    <div class="sunday-hint" id="sundayHint">
+        📋 该日已记录 <span id="sundayCount">0</span>/3 个时间段
+    </div>
+
+    <div class="time-row">
+        <div class="time-block">
+            <label for="startTime">⏰ 开始</label>
+            <select id="startTime"></select>
+        </div>
+        <span class="time-separator">→</span>
+        <div class="time-block">
+            <label for="endTime">🕐 结束</label>
+            <select id="endTime"></select>
+        </div>
+    </div>
+    <div class="options-row">
+        <label class="holiday-check">
+            <input type="checkbox" id="holidayCheckbox"> 🎈 节日
+        </label>
+    </div>
+
+    <div class="live-hours" id="liveHoursDisplay">
+        <span class="hours-num" id="liveHours">2.0</span> 小时
+        <span class="category-tag" id="categoryTag">工作日</span>
+    </div>
+
+    <button class="btn-save" id="btnSave">💾 保存加班记录</button>
+    <div class="btn-export-group">
+        <button class="btn-export" id="btnExport">📜 导出记录</button>
+        <button class="btn-import" id="btnImport">📥 导入记录</button>
+        <button class="btn-folder" id="btnSetFolder">📁 本地备份</button>
+    </div>
+    <input type="file" id="importFileInput" accept=".txt" style="display:none;">
+</div>
+
+<div class="modal-overlay" id="modalOverlay" style="display:none;">
+    <div class="modal-dialog">
+        <div class="modal-title" id="modalTitle">确认保存</div>
+        <table class="modal-table" id="modalTable"></table>
+        <div class="modal-buttons" id="modalButtons"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="sameTimeModal" style="display:none;">
+    <div class="modal-dialog">
+        <div class="modal-title">⚠️ 开始与结束时间相同</div>
+        <p style="text-align:center;margin-bottom:14px;">请选择如何处理：</p>
+        <div class="modal-buttons">
+            <button class="btn-cancel" id="btnZeroHour">0 小时（删除当天所有记录）</button>
+            <button class="btn-confirm" id="btn24Hour">24 小时（新增一条全天记录）</button>
+        </div>
+        <div style="text-align:center;margin-top:10px;">
+            <button class="btn-cancel" id="btnCancelSame">返回修改</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="detailModalOverlay" style="display:none;">
+    <div class="modal-dialog">
+        <div class="modal-title" id="detailTitle">加班详情</div>
+        <div class="detail-header">
+            <select id="detailYear"></select>
+            <select id="detailMonth"></select>
+            <span style="font-size:0.75rem;">分类：<strong id="detailCategoryLabel"></strong></span>
+        </div>
+        <div id="detailSundaySummary" class="sunday-summary" style="display:none;"></div>
+        <div style="text-align:center;font-size:0.75rem;margin-bottom:8px;">
+            📋 当月此类总计：<span id="detailTotalHours">0.0</span> 小时
+        </div>
+        <div class="record-list" id="recordList"></div>
+        <div style="text-align:right;"><button class="btn-cancel" id="btnCloseDetail">关闭</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="editModalOverlay" style="display:none;">
+    <div class="modal-dialog">
+        <div class="modal-title">✏️ 修改加班记录</div>
+        <div style="margin-bottom:10px;font-size:0.85rem;">
+            日期：<span id="editDateDisplay"></span>
+        </div>
+        <div class="time-row">
+            <div class="time-block"><label>开始</label><select id="editStart"></select></div>
+            <span class="time-separator">→</span>
+            <div class="time-block"><label>结束</label><select id="editEnd"></select></div>
+        </div>
+        <label class="holiday-check" style="margin:10px 0;">
+            <input type="checkbox" id="editHoliday"> 🎈 节日加班
+        </label>
+        <div class="modal-buttons">
+            <button class="btn-cancel" id="btnCancelEdit">取消</button>
+            <button class="btn-confirm" id="btnSaveEdit">💾 保存修改</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="importModalOverlay" style="display:none;">
+    <div class="modal-dialog">
+        <div class="modal-title">📥 导入预览</div>
+        <div id="importPreviewContent" style="margin-bottom:12px;"></div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" id="btnCancelImport">取消</button>
+            <button class="btn-import-confirm" id="btnConfirmImport">✅ 确认导入</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    (function() {
+        const els = {
+            dateDisplay: document.getElementById('dateDisplay'),
+            weekdayBadge: document.getElementById('weekdayBadge'),
+            datePicker: document.getElementById('datePicker'),
+            startSelect: document.getElementById('startTime'),
+            endSelect: document.getElementById('endTime'),
+            holidayCheckbox: document.getElementById('holidayCheckbox'),
+            liveHoursEl: document.getElementById('liveHours'),
+            categoryTag: document.getElementById('categoryTag'),
+            weekdayTotal: document.getElementById('weekdayTotal'),
+            weekendTotal: document.getElementById('weekendTotal'),
+            holidayTotal: document.getElementById('holidayTotal'),
+            monthlyGrandTotal: document.getElementById('monthlyGrandTotal'),
+            lastMonthGrandTotal: document.getElementById('lastMonthGrandTotal'),
+            lastWeekdayTotal: document.getElementById('lastWeekdayTotal'),
+            lastWeekendTotal: document.getElementById('lastWeekendTotal'),
+            lastHolidayTotal: document.getElementById('lastHolidayTotal'),
+            btnSave: document.getElementById('btnSave'),
+            btnExport: document.getElementById('btnExport'),
+            btnImport: document.getElementById('btnImport'),
+            btnSetFolder: document.getElementById('btnSetFolder'),
+            importFileInput: document.getElementById('importFileInput'),
+            modalOverlay: document.getElementById('modalOverlay'),
+            modalTitle: document.getElementById('modalTitle'),
+            modalTable: document.getElementById('modalTable'),
+            modalButtons: document.getElementById('modalButtons'),
+            sameTimeModal: document.getElementById('sameTimeModal'),
+            detailModalOverlay: document.getElementById('detailModalOverlay'),
+            detailTitle: document.getElementById('detailTitle'),
+            detailYear: document.getElementById('detailYear'),
+            detailMonth: document.getElementById('detailMonth'),
+            detailCategoryLabel: document.getElementById('detailCategoryLabel'),
+            recordList: document.getElementById('recordList'),
+            detailTotalHours: document.getElementById('detailTotalHours'),
+            btnCloseDetail: document.getElementById('btnCloseDetail'),
+            editModalOverlay: document.getElementById('editModalOverlay'),
+            editDateDisplay: document.getElementById('editDateDisplay'),
+            editStart: document.getElementById('editStart'),
+            editEnd: document.getElementById('editEnd'),
+            editHoliday: document.getElementById('editHoliday'),
+            btnCancelEdit: document.getElementById('btnCancelEdit'),
+            btnSaveEdit: document.getElementById('btnSaveEdit'),
+            importModalOverlay: document.getElementById('importModalOverlay'),
+            importPreviewContent: document.getElementById('importPreviewContent'),
+            btnCancelImport: document.getElementById('btnCancelImport'),
+            btnConfirmImport: document.getElementById('btnConfirmImport'),
+            toast: document.getElementById('toast'),
+            sundayHint: document.getElementById('sundayHint'),
+            sundayCount: document.getElementById('sundayCount'),
+            detailSundaySummary: document.getElementById('detailSundaySummary')
+        };
+
+        const STORAGE_KEY = 'overtime_records_v2';
+        const DEFAULT_START = '18:00';
+        const DEFAULT_END = '20:00';
+        const weekDays = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+        const catMapReverse = { '工作日': 'weekday', '周末': 'weekend', '节日': 'holiday' };
+        const DB_NAME = 'overtime-backup-db';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'handles';
+
+        let currentDateStr = '';
+        let currentWeekDay = '';
+        let currentWeekDayIndex = -1;
+        let isInitialLoad = true;
+        let folderHandle = null;
+        let currentEditRecord = null;
+        let currentDetailCategory = 'weekday';
+        let pendingImportRecords = [];
+        let autoSaveTimer = null;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+        async function storeFolderHandle(handle) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put(handle, 'folderHandle');
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+        async function loadFolderHandle() {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const getReq = store.get('folderHandle');
+                getReq.onsuccess = () => resolve(getReq.result || null);
+                getReq.onerror = () => reject(getReq.error);
+            });
+        }
+        async function clearStoredHandle() {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.delete('folderHandle');
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function verifyHandlePermission(handle) {
+            if (!handle || !('queryPermission' in handle)) return false;
+            try {
+                const status = await handle.queryPermission({ mode: 'readwrite' });
+                return status === 'granted';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function updateBackupButtonState() {
+            if (folderHandle) {
+                els.btnSetFolder.textContent = '✅ 备份已连接';
+                els.btnSetFolder.classList.add('connected');
+            } else {
+                els.btnSetFolder.textContent = '📁 本地备份';
+                els.btnSetFolder.classList.remove('connected');
+            }
+        }
+
+        function populateTimeSelects(selStart = els.startSelect, selEnd = els.endSelect, defStart = DEFAULT_START, defEnd = DEFAULT_END) {
+            const times = [];
+            for (let h = 0; h < 24; h++)
+                for (let m = 0; m < 60; m += 30)
+                    times.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+            selStart.innerHTML = ''; selEnd.innerHTML = '';
+            times.forEach(t => { selStart.appendChild(new Option(t, t)); selEnd.appendChild(new Option(t, t)); });
+            selStart.value = defStart; selEnd.value = defEnd;
+        }
+
+        function calcHours(s, e) {
+            let diff = (parseInt(e) * 60 + parseInt(e.slice(3))) - (parseInt(s) * 60 + parseInt(s.slice(3)));
+            if (diff <= 0) diff += 24 * 60;
+            return Math.round(diff / 6) / 10;
+        }
+
+        function timeToMinutes(t) {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function hasOverlap(newStart, newEnd, existingRecords) {
+            const ns = timeToMinutes(newStart), ne = timeToMinutes(newEnd);
+            const extended = ne <= ns ? ne + 24 * 60 : ne;
+            for (const rec of existingRecords) {
+                const es = timeToMinutes(rec.startTime);
+                let ee = timeToMinutes(rec.endTime);
+                if (ee <= es) ee += 24 * 60;
+                if (ns < ee && extended > es) return true;
+            }
+            return false;
+        }
+
+        function getRecords() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; } }
+        function saveRecords(r) { localStorage.setItem(STORAGE_KEY, JSON.stringify(r)); }
+        function getTodayRecords() { return getRecords().filter(r => r.date === currentDateStr); }
+
+        function getDayOfWeekFromDate(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            if (isNaN(date.getTime())) return null;
+            return weekDays[date.getDay()];
+        }
+
+        function setCurrentDate(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            currentDateStr = dateStr;
+            currentWeekDayIndex = date.getDay();
+            currentWeekDay = weekDays[currentWeekDayIndex];
+            els.dateDisplay.textContent = currentDateStr;
+            els.weekdayBadge.textContent = currentWeekDay;
+            els.weekdayBadge.className = 'weekday-badge' + (currentWeekDayIndex === 0 ? ' weekend' : '');
+            updateCategoryTag();
+            updateSundayHint();
+        }
+
+        function updateCategoryTag() {
+            const cat = els.holidayCheckbox.checked ? 'holiday' : (currentWeekDayIndex === 0 ? 'weekend' : 'weekday');
+            els.categoryTag.textContent = { weekday: '工作日加班', weekend: '周末加班', holiday: '节日加班' }[cat];
+            els.categoryTag.className = 'category-tag tag-' + cat;
+        }
+
+        function updateSundayHint() {
+            if (currentWeekDayIndex === 0) {
+                const count = getTodayRecords().length;
+                els.sundayCount.textContent = count;
+                els.sundayHint.style.display = 'block';
+            } else {
+                els.sundayHint.style.display = 'none';
+            }
+        }
+
+        function updateLiveHours() {
+            const h = calcHours(els.startSelect.value, els.endSelect.value);
+            els.liveHoursEl.textContent = h.toFixed(1);
+            els.btnSave.disabled = (h <= 0 && els.startSelect.value !== els.endSelect.value);
+        }
+
+        function computeStats(prefix) {
+            const records = getRecords();
+            let wd = 0, we = 0, ho = 0;
+            records.forEach(r => {
+                if (r.date?.startsWith(prefix)) {
+                    if (r.category === 'holiday') ho += r.hours;
+                    else if (r.category === 'weekend') we += r.hours;
+                    else wd += r.hours;
+                }
+            });
+            return {
+                weekday: Math.round(wd * 10) / 10,
+                weekend: Math.round(we * 10) / 10,
+                holiday: Math.round(ho * 10) / 10,
+                total: Math.round((wd + we + ho) * 10) / 10
+            };
+        }
+
+        function updateAllStats() {
+            const now = new Date();
+            const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const s = computeStats(thisMonth);
+            els.weekdayTotal.textContent = s.weekday.toFixed(1);
+            els.weekendTotal.textContent = s.weekend.toFixed(1);
+            els.holidayTotal.textContent = s.holiday.toFixed(1);
+            els.monthlyGrandTotal.textContent = s.total.toFixed(1);
+
+            const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+            const ls = computeStats(lastMonth);
+            els.lastWeekdayTotal.textContent = ls.weekday.toFixed(1);
+            els.lastWeekendTotal.textContent = ls.weekend.toFixed(1);
+            els.lastHolidayTotal.textContent = ls.holiday.toFixed(1);
+            els.lastMonthGrandTotal.textContent = ls.total.toFixed(1);
+        }
+
+        function buildRecord() {
+            const s = els.startSelect.value, e = els.endSelect.value;
+            const h = calcHours(s, e);
+            if (h <= 0 && s !== e) return null;
+            return {
+                date: currentDateStr,
+                dayOfWeek: currentWeekDay,
+                category: els.holidayCheckbox.checked ? 'holiday' : (currentWeekDayIndex === 0 ? 'weekend' : 'weekday'),
+                startTime: s,
+                endTime: e,
+                hours: h
+            };
+        }
+
+        function saveRecord(record) {
+            const records = getRecords();
+            const todayRecords = records.filter(r => r.date === record.date);
+            if (currentWeekDayIndex === 0) {
+                if (todayRecords.length >= 3) {
+                    showToast('⚠️ 周日最多记录3个时间段', false);
+                    return false;
+                }
+                if (hasOverlap(record.startTime, record.endTime, todayRecords)) {
+                    showToast('⚠️ 时段与已有记录重合，请调整时间', false);
+                    return false;
+                }
+                records.push(record);
+            } else {
+                const idx = records.findIndex(r => r.date === record.date);
+                if (idx >= 0) records[idx] = record;
+                else records.push(record);
+            }
+            saveRecords(records);
+            return true;
+        }
+
+        function showSaveModal(rec) {
+            els.modalTitle.textContent = '确认保存加班记录';
+            els.modalTable.innerHTML = `
+                <tr><td>日期</td><td>${rec.date} ${rec.dayOfWeek}</td></tr>
+                <tr><td>类别</td><td>${{weekday:'💼 工作日',weekend:'🏠 周末',holiday:'🎈 节日'}[rec.category]}</td></tr>
+                <tr><td>时间</td><td>${rec.startTime} → ${rec.endTime}</td></tr>
+                <tr class="highlight"><td>时长</td><td>${rec.hours.toFixed(1)} 小时</td></tr>
+            `;
+            els.modalButtons.innerHTML = `
+                <button class="btn-cancel" id="btnCancelModal">取消</button>
+                <button class="btn-confirm" id="btnConfirmModal">✅ 确认保存</button>
+            `;
+            document.getElementById('btnCancelModal').onclick = closeModal;
+            document.getElementById('btnConfirmModal').onclick = () => {
+                if (saveRecord(rec)) finishSave('✅ 已保存');
+            };
+            els.modalOverlay.style.display = 'flex';
+        }
+
+        function showUpdateModal(newRec, oldRec) {
+            els.modalTitle.textContent = '⚠️ 当天已有记录';
+            els.modalTable.innerHTML = `
+                <tr><td>现有</td><td>${oldRec.startTime}-${oldRec.endTime} ${oldRec.hours.toFixed(1)}h</td></tr>
+                <tr><td style="color:#d97706;">新记录</td><td style="color:#d97706;">${newRec.startTime}-${newRec.endTime} ${newRec.hours.toFixed(1)}h</td></tr>
+            `;
+            els.modalButtons.innerHTML = `
+                <button class="btn-cancel" id="btnCancelModal">取消</button>
+                <button class="btn-danger" id="btnUpdateModal">🔄 更新</button>
+            `;
+            document.getElementById('btnCancelModal').onclick = closeModal;
+            document.getElementById('btnUpdateModal').onclick = () => {
+                if (saveRecord(newRec)) finishSave('✅ 已更新');
+            };
+            els.modalOverlay.style.display = 'flex';
+        }
+
+        function closeModal() { els.modalOverlay.style.display = 'none'; }
+
+        async function finishSave(msg) {
+            closeModal();
+            updateAllStats();
+            updateSundayHint();
+
+            if (folderHandle && ('showDirectoryPicker' in window)) {
+                try {
+                    const content = generateTxt(getRecords());
+                    const blob = new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' });
+                    const fileHandle = await folderHandle.getFileHandle('jiajia.txt', { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    showToast('✅ 已保存，备份已同步', true);
+                } catch (error) {
+                    showToast('❌ 备份失败，请重新设置本地备份', false);
+                    folderHandle = null;
+                    updateBackupButtonState();
+                    await clearStoredHandle();
+                }
+            } else {
+                showToast(msg, true);
+            }
+        }
+
+        function triggerSave() {
+            if (els.modalOverlay.style.display === 'flex') closeModal();
+            if (els.sameTimeModal.style.display === 'flex') els.sameTimeModal.style.display = 'none';
+            const rec = buildRecord();
+            if (!rec) { showToast('⚠️ 时间无效', false); return; }
+            if (els.startSelect.value === els.endSelect.value) {
+                els.sameTimeModal.style.display = 'flex';
+                return;
+            }
+            if (currentWeekDayIndex === 0) {
+                if (getTodayRecords().length >= 3) {
+                    showToast('⚠️ 该周日已达3个时间段上限', false);
+                    return;
+                }
+                showSaveModal(rec);
+            } else {
+                const existing = getRecords().find(r => r.date === rec.date);
+                if (existing) showUpdateModal(rec, existing);
+                else showSaveModal(rec);
+            }
+        }
+
+        function scheduleAutoSave() {
+            clearTimeout(autoSaveTimer);
+            if (!isInitialLoad) {
+                autoSaveTimer = setTimeout(triggerSave, 800);
+            }
+        }
+
+        function parseTxtContent(content) {
+            const records = [];
+            const lines = content.split(/\r?\n/);
+            let currentDate = null;
+            let currentDayOfWeek = null;
+            let currentCategory = 'weekday';
+            let inSummary = false;
+            const dateLineRegex = /^(\d{4}-\d{2}-\d{2})\s+(星期[一二三四五六日])?\s*(工作日|周末|节日)/;
+            const timeLineRegex = /^\s+(\d{1,2}:\d{2})\s*[→]\s*(\d{1,2}:\d{2})\s+(\d+\.?\d*)h/;
+            const summaryHeaderRegex = /月度汇总/;
+            for (const line of lines) {
+                if (summaryHeaderRegex.test(line)) { inSummary = true; continue; }
+                if (inSummary) continue;
+                if (/^═/.test(line) && line.includes('加班记录')) continue;
+                if (/^生成时间/.test(line)) continue;
+                if (/^─{5,}/.test(line)) continue;
+                if (/^═{5,}/.test(line)) continue;
+                const dateMatch = line.match(dateLineRegex);
+                if (dateMatch) {
+                    currentDate = dateMatch[1];
+                    currentDayOfWeek = dateMatch[2] || getDayOfWeekFromDate(currentDate) || '';
+                    const catText = dateMatch[3];
+                    currentCategory = catMapReverse[catText] || 'weekday';
+                    continue;
+                }
+                const timeMatch = line.match(timeLineRegex);
+                if (timeMatch && currentDate) {
+                    const startTime = timeMatch[1].padStart(5, '0');
+                    const endTime = timeMatch[2].padStart(5, '0');
+                    const hours = parseFloat(timeMatch[3]);
+                    const dayOfWeek = currentDayOfWeek || getDayOfWeekFromDate(currentDate) || '';
+                    records.push({
+                        date: currentDate,
+                        dayOfWeek: dayOfWeek,
+                        category: currentCategory,
+                        startTime: startTime,
+                        endTime: endTime,
+                        hours: hours
+                    });
+                }
+            }
+            return records;
+        }
+
+        function showImportPreview(records) {
+            pendingImportRecords = records;
+            const catCount = { weekday: 0, weekend: 0, holiday: 0 };
+            records.forEach(r => { catCount[r.category] = (catCount[r.category] || 0) + 1; });
+            const totalHours = records.reduce((s, r) => s + r.hours, 0);
+            let previewHtml = `
+                <p style="text-align:center;font-weight:700;margin-bottom:8px;">共解析出 <span style="color:#6366f1;">${records.length}</span> 条记录，合计 <span style="color:#6366f1;">${totalHours.toFixed(1)}</span> 小时</p>
+                <p style="text-align:center;font-size:0.7rem;margin-bottom:6px;">💼工作日:${catCount.weekday}条 | 🏠周末:${catCount.weekend}条 | 🎈节日:${catCount.holiday}条</p>
+                <div class="import-preview-list">
+            `;
+            const showRecords = records.slice(0, 15);
+            showRecords.forEach(r => {
+                previewHtml += `<div>${r.date} ${r.dayOfWeek} ${r.startTime}→${r.endTime} ${r.hours.toFixed(1)}h ${ {weekday:'💼',weekend:'🏠',holiday:'🎈'}[r.category] }</div>`;
+            });
+            if (records.length > 15) previewHtml += `<div style="color:#64748b;">... 还有 ${records.length - 15} 条记录</div>`;
+            previewHtml += '</div><p style="font-size:0.65rem;color:#64748b;text-align:center;">导入将合并到现有记录（相同日期+开始时间的记录将被覆盖）</p>';
+            els.importPreviewContent.innerHTML = previewHtml;
+            els.importModalOverlay.style.display = 'flex';
+        }
+
+        async function executeImport() {
+            const records = getRecords();
+            for (const rec of pendingImportRecords) {
+                const isSunday = rec.dayOfWeek === '星期日';
+                const existingIdx = records.findIndex(r => r.date === rec.date && r.startTime === rec.startTime);
+                if (existingIdx >= 0) {
+                    records[existingIdx] = rec;
+                } else if (isSunday) {
+                    records.push(rec);
+                } else {
+                    const sameDateIdx = records.findIndex(r => r.date === rec.date);
+                    if (sameDateIdx >= 0) records[sameDateIdx] = rec;
+                    else records.push(rec);
+                }
+            }
+            saveRecords(records);
+            els.importModalOverlay.style.display = 'none';
+            updateAllStats();
+            updateSundayHint();
+            showToast(`✅ 成功导入 ${pendingImportRecords.length} 条记录`, true);
+            await writeBackupFile();
+            pendingImportRecords = [];
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let content = e.target.result;
+                    if (content.charCodeAt(0) === 0xFEFF) content = content.slice(1);
+                    const records = parseTxtContent(content);
+                    if (records.length === 0) showToast('⚠️ 未能从文件中解析到有效记录', false);
+                    else showImportPreview(records);
+                } catch (err) { showToast('❌ 文件读取失败，请检查文件格式', false); }
+            };
+            reader.onerror = () => showToast('❌ 文件读取失败', false);
+            reader.readAsText(file, 'utf-8');
+            els.importFileInput.value = '';
+        }
+
+        async function writeBackupFile() {
+            if (!folderHandle || !('showDirectoryPicker' in window)) return;
+            try {
+                const content = generateTxt(getRecords());
+                const blob = new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' });
+                const fileHandle = await folderHandle.getFileHandle('jiajia.txt', { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+            } catch (e) {
+                console.error('静默备份失败:', e);
+            }
+        }
+
+        function generateTxt(records) {
+            let txt = '══════════════ 加班记录 ══════════════\n';
+            const now = new Date().toLocaleString('zh-CN');
+            txt += `生成时间：${now}\n\n`;
+            const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+            const catMap = { weekday: '工作日', weekend: '周末', holiday: '节日' };
+            let lastDate = '';
+            const monthStats = {};
+            sorted.forEach(r => {
+                const ym = r.date.substring(0, 7);
+                if (!monthStats[ym]) monthStats[ym] = { weekday: 0, weekend: 0, holiday: 0, total: 0 };
+                monthStats[ym][r.category] += r.hours;
+                monthStats[ym].total += r.hours;
+                if (r.date !== lastDate) {
+                    txt += `\n${r.date} ${r.dayOfWeek || ''}  ${catMap[r.category]}\n`;
+                    txt += '─'.repeat(30) + '\n';
+                    lastDate = r.date;
+                }
+                txt += `  ${r.startTime} → ${r.endTime}  ${r.hours.toFixed(1)}h\n`;
+            });
+            txt += '\n══════════ 月度汇总 ══════════\n';
+            const sortedMonths = Object.keys(monthStats).sort();
+            sortedMonths.forEach(ym => {
+                const ms = monthStats[ym];
+                txt += `${ym}  工作日:${ms.weekday.toFixed(1)}h  周末:${ms.weekend.toFixed(1)}h  节日:${ms.holiday.toFixed(1)}h  总计:${ms.total.toFixed(1)}h\n`;
+            });
+            return txt;
+        }
+
+        function showToast(msg, ok = true) {
+            clearTimeout(window.toastTimer);
+            els.toast.textContent = msg;
+            els.toast.className = 'toast ' + (ok ? 'success' : 'error');
+            els.toast.classList.add('show');
+            window.toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2000);
+        }
+
+        async function setupBackupFolder() {
+            if (!('showDirectoryPicker' in window)) {
+                showToast('❌ 浏览器不支持', false);
+                return;
+            }
+            try {
+                const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                folderHandle = handle;
+                await storeFolderHandle(handle);
+                updateBackupButtonState();
+                showToast('✅ 备份已设置', true);
+                const content = generateTxt(getRecords());
+                const blob = new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' });
+                const fileHandle = await folderHandle.getFileHandle('jiajia.txt', { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+            } catch (e) {
+            }
+        }
+
+        els.datePicker.valueAsDate = new Date();
+        els.datePicker.addEventListener('change', () => {
+            setCurrentDate(els.datePicker.value);
+            updateLiveHours();
+            updateAllStats();
+        });
+        els.startSelect.addEventListener('change', () => {
+            updateLiveHours();
+            scheduleAutoSave();
+        });
+        els.endSelect.addEventListener('change', () => {
+            updateLiveHours();
+            scheduleAutoSave();
+        });
+        els.holidayCheckbox.addEventListener('change', updateCategoryTag);
+        els.btnSave.addEventListener('click', () => {
+            clearTimeout(autoSaveTimer);
+            triggerSave();
+        });
+        els.btnExport.addEventListener('click', () => {
+            const blob = new Blob(['\uFEFF' + generateTxt(getRecords())], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'jiajia.txt';
+            a.click();
+        });
+        els.btnImport.addEventListener('click', () => els.importFileInput.click());
+        els.importFileInput.addEventListener('change', handleFileSelect);
+        els.btnSetFolder.addEventListener('click', setupBackupFolder);
+
+        document.getElementById('btnZeroHour').onclick = async () => {
+            els.sameTimeModal.style.display = 'none';
+            const todayRecords = getTodayRecords();
+            if (todayRecords.length > 0) {
+                const records = getRecords().filter(r => r.date !== currentDateStr);
+                saveRecords(records);
+                updateAllStats();
+                updateSundayHint();
+                showToast('🗑️ 当天所有记录已删除', true);
+                await writeBackupFile();
+            } else showToast('ℹ️ 当天无记录');
+        };
+        document.getElementById('btn24Hour').onclick = () => {
+            els.sameTimeModal.style.display = 'none';
+            const rec = { ...buildRecord(), hours: 24 };
+            if (currentWeekDayIndex === 0) {
+                if (getTodayRecords().length >= 3) { showToast('⚠️ 周日已达上限', false); return; }
+                showSaveModal(rec);
+            } else {
+                const existing = getRecords().find(r => r.date === rec.date);
+                if (existing) showUpdateModal(rec, existing);
+                else showSaveModal(rec);
+            }
+        };
+        document.getElementById('btnCancelSame').onclick = () => els.sameTimeModal.style.display = 'none';
+
+        function openDetailModal(cat) {
+            currentDetailCategory = cat;
+            els.detailTitle.textContent = { weekday: '💼 工作日', weekend: '🏠 周末', holiday: '🎈 节日' }[cat] + ' 详情';
+            els.detailCategoryLabel.textContent = { weekday: '💼 工作日', weekend: '🏠 周末', holiday: '🎈 节日' }[cat];
+            const now = new Date();
+            els.detailYear.innerHTML = Array.from({ length: 5 }, (_, i) => `<option value="${now.getFullYear() - i}" ${i === 0 ? 'selected' : ''}>${now.getFullYear() - i}年</option>`).join('');
+            els.detailMonth.innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${String(i + 1).padStart(2, '0')}" ${i === now.getMonth() ? 'selected' : ''}>${i + 1}月</option>`).join('');
+            renderDetailList();
+            els.detailModalOverlay.style.display = 'flex';
+        }
+
+        function renderDetailList() {
+            const y = els.detailYear.value, m = els.detailMonth.value;
+            const prefix = `${y}-${m}`;
+            const records = getRecords().filter(r => r.date?.startsWith(prefix) && r.category === currentDetailCategory);
+            const sundayMap = {};
+            records.forEach(r => { if (r.dayOfWeek === '星期日') sundayMap[r.date] = (sundayMap[r.date] || 0) + r.hours; });
+            const sundayKeys = Object.keys(sundayMap);
+            if (sundayKeys.length > 0) {
+                const lines = sundayKeys.map(date => `${date} 总 ${sundayMap[date].toFixed(1)}h`).join(' ； ');
+                els.detailSundaySummary.textContent = `🏠 周日合计：${lines}`;
+                els.detailSundaySummary.style.display = 'block';
+            } else els.detailSundaySummary.style.display = 'none';
+            els.detailTotalHours.textContent = records.reduce((s, r) => s + r.hours, 0).toFixed(1);
+            els.recordList.innerHTML = records.length ? records.map(r => `
+                <div class="record-item">
+                    <span class="date">${r.date} ${r.dayOfWeek}</span>
+                    <span class="time">${r.startTime}-${r.endTime}</span>
+                    <span class="hours">${r.hours.toFixed(1)}h</span>
+                    <button class="edit-btn" data-date="${r.date}" data-start="${r.startTime}">✏️</button>
+                    <button class="delete-btn" data-date="${r.date}" data-start="${r.startTime}">🗑️</button>
+                </div>
+            `).join('') : '<div class="no-data">暂无记录</div>';
+            document.querySelectorAll('.edit-btn').forEach(b => {
+                b.onclick = (e) => openEditModal(e.target.dataset.date, e.target.dataset.start);
+            });
+            document.querySelectorAll('.delete-btn').forEach(b => {
+                b.onclick = async (e) => {
+                    if (confirm('确定删除该时段？')) {
+                        const date = e.target.dataset.date, start = e.target.dataset.start;
+                        const records = getRecords().filter(r => !(r.date === date && r.startTime === start));
+                        saveRecords(records);
+                        updateAllStats(); updateSundayHint(); renderDetailList();
+                        showToast('🗑️ 已删除', true);
+                        await writeBackupFile();
+                    }
+                };
+            });
+        }
+
+        function openEditModal(date, start) {
+            const record = getRecords().find(r => r.date === date && r.startTime === start);
+            if (!record) return;
+            currentEditRecord = record;
+            els.editDateDisplay.textContent = record.date + ' ' + record.dayOfWeek;
+            populateTimeSelects(els.editStart, els.editEnd, record.startTime, record.endTime);
+            els.editHoliday.checked = record.category === 'holiday';
+            els.editModalOverlay.style.display = 'flex';
+        }
+
+        async function saveEdit() {
+            if (!currentEditRecord) return;
+            const s = els.editStart.value, e = els.editEnd.value;
+            if (s === e) { showToast('⚠️ 时间不能相同', false); return; }
+            const hours = calcHours(s, e);
+            const updated = {
+                ...currentEditRecord,
+                startTime: s,
+                endTime: e,
+                hours,
+                category: els.editHoliday.checked ? 'holiday' : (currentEditRecord.dayOfWeek === '星期日' ? 'weekend' : 'weekday')
+            };
+            const records = getRecords();
+            const idx = records.findIndex(r => r.date === updated.date && r.startTime === currentEditRecord.startTime);
+            if (idx >= 0) {
+                if (currentEditRecord.dayOfWeek === '星期日') {
+                    const otherRecords = records.filter((_, i) => i !== idx);
+                    const todayOthers = otherRecords.filter(r => r.date === updated.date);
+                    if (hasOverlap(updated.startTime, updated.endTime, todayOthers)) {
+                        showToast('⚠️ 修改后时段与已有记录重合', false);
+                        return;
+                    }
+                }
+                records[idx] = updated;
+            } else records.push(updated);
+            saveRecords(records);
+            els.editModalOverlay.style.display = 'none';
+            updateAllStats(); updateSundayHint(); renderDetailList();
+            showToast('✅ 已更新', true);
+            await writeBackupFile();
+        }
+
+        document.getElementById('cardWeekday').onclick = () => openDetailModal('weekday');
+        document.getElementById('cardWeekend').onclick = () => openDetailModal('weekend');
+        document.getElementById('cardHoliday').onclick = () => openDetailModal('holiday');
+        els.detailYear.onchange = renderDetailList;
+        els.detailMonth.onchange = renderDetailList;
+        els.btnCloseDetail.onclick = () => els.detailModalOverlay.style.display = 'none';
+        els.btnCancelEdit.onclick = () => els.editModalOverlay.style.display = 'none';
+        els.btnSaveEdit.onclick = saveEdit;
+        els.btnCancelImport.onclick = () => { els.importModalOverlay.style.display = 'none'; pendingImportRecords = []; };
+        els.btnConfirmImport.onclick = executeImport;
+
+        async function init() {
+            try {
+                const savedHandle = await loadFolderHandle();
+                if (savedHandle) {
+                    const isValid = await verifyHandlePermission(savedHandle);
+                    if (isValid) {
+                        folderHandle = savedHandle;
+                    } else {
+                        await clearStoredHandle();
+                        showToast('⚠️ 备份连接已失效，请重新设置', false);
+                    }
+                }
+            } catch (e) {
+                console.warn('恢复备份句柄失败:', e);
+            }
+            updateBackupButtonState();
+
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            els.datePicker.value = dateStr;
+            setCurrentDate(dateStr);
+            populateTimeSelects();
+            updateLiveHours();
+            updateAllStats();
+            setTimeout(() => isInitialLoad = false, 200);
+        }
+        init();
+    })();
+</script>
+</body>
+</html>
