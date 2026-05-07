@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>加班时间记录</title>
+    <style>
+        :root {
+            --bg: #f0f2f7;
+            --card-bg: #ffffff;
+            --primary: #5b6af0;
+            --primary-hover: #4a56e0;
+            --primary-light: #eef0ff;
+            --text: #1a1d2e;
+            --text-secondary: #5f6377;
+            --text-muted: #9498ab;
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --border: #e8ecf3;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.18);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --radius-xs: 7px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --weekday: #3b82f6;
+            --weekend: #f59e0b;
+            --holiday: #ef4444;
+            --import: #6366f1;
+            --connected: #059669;
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 12px 8px;
+            background-image:
+                radial-gradient(ellipse at 15% 20%, rgba(91, 106, 240, 0.04) 0%, transparent 55%),
+                radial-gradient(ellipse at 78% 55%, rgba(245, 158, 11, 0.04) 0%, transparent 55%),
+                radial-gradient(ellipse at 45% 85%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px 16px 16px;
+            width: 100%;
+            max-width: 500px;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        /* ========== 日期头部 ========== */
+        .date-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f5f6fa;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .date-main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .date-display {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.3px;
+        }
+        .weekday-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: #fff;
+            background: var(--primary);
+            padding: 3px 13px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .weekday-badge.weekend {
+            background: var(--weekend);
+            color: #1a1a1a;
+        }
+        .date-input {
+            font-size: 0.78rem;
+            padding: 6px 10px;
+            border-radius: var(--radius-xs);
+            border: 2px solid var(--border);
+            background: #fafbfc;
+            color: var(--text);
+            font-family: inherit;
+            cursor: pointer;
+            transition: var(--transition);
+            min-width: 130px;
+        }
+        .date-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 106, 240, 0.1);
+            background: #fff;
+        }
+
+        /* ========== 统计卡片 ========== */
+        .stats-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .stat-card {
+            flex: 1;
+            background: #fafbfd;
+            border: 1.5px solid #eef0f5;
+            border-radius: var(--radius-sm);
+            padding: 10px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-sm);
+            opacity: 0;
+            transition: opacity 0.25s;
+            pointer-events: none;
+        }
+        .stat-card:active {
+            transform: scale(0.97);
+            transition: transform 0.1s;
+        }
+        .stat-card:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+            border-color: #dde1ed;
+        }
+        .stat-card.weekday {
+            border-left: 3.5px solid var(--weekday);
+        }
+        .stat-card.weekday::after {
+            background: rgba(59, 130, 246, 0.04);
+        }
+        .stat-card.weekday:hover::after {
+            opacity: 1;
+        }
+        .stat-card.weekend {
+            border-left: 3.5px solid var(--weekend);
+        }
+        .stat-card.weekend::after {
+            background: rgba(245, 158, 11, 0.04);
+        }
+        .stat-card.weekend:hover::after {
+            opacity: 1;
+        }
+        .stat-card.holiday {
+            border-left: 3.5px solid var(--holiday);
+        }
+        .stat-card.holiday::after {
+            background: rgba(239, 68, 68, 0.04);
+        }
+        .stat-card.holiday:hover::after {
+            opacity: 1;
+        }
+        .stat-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            margin-bottom: 2px;
+            letter-spacing: 0.2px;
+            position: relative;
+            z-index: 1;
+        }
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -0.5px;
+        }
+        .stat-value.weekday-val {
+            color: var(--weekday);
+        }
+        .stat-value.weekend-val {
+            color: #d97706;
+        }
+        .stat-value.holiday-val {
+            color: var(--holiday);
+        }
+        .stat-unit {
+            font-size: 0.6rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 2px;
+            position: relative;
+            z-index: 1;
+        }
+        .stat-card-hint {
+            display: block;
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-top: 1px;
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+        .stat-card:hover .stat-card-hint {
+            opacity: 1;
+        }
+
+        /* ========== 汇总行 ========== */
+        .summary-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f7f9fc;
+            border-radius: var(--radius-xs);
+            padding: 7px 10px;
+            margin-bottom: 7px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            gap: 5px;
+            white-space: nowrap;
+            flex-wrap: wrap;
+            letter-spacing: 0.1px;
+        }
+        .summary-row .total-value {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .last-month-row {
+            background: #f4f5fd;
+            border: 1px dashed #dde1f8;
+        }
+        .last-month-row .total-value {
+            color: #5b6af0;
+        }
+
+        /* ========== 周日提示 ========== */
+        .sunday-hint {
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #d97706;
+            background: #fffbeb;
+            border-radius: var(--radius-xs);
+            padding: 5px 10px;
+            margin-bottom: 8px;
+            display: none;
+            border: 1px dashed #fcd34d;
+            letter-spacing: 0.2px;
+            animation: fadeInDown 0.3s ease;
+        }
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ========== 时间选择区 ========== */
+        .time-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            flex-wrap: nowrap;
+        }
+        .time-block {
+            flex: 1;
+            min-width: 100px;
+        }
+        .time-block label {
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            letter-spacing: 0.3px;
+        }
+        .time-block select {
+            width: 100%;
+            padding: 11px 32px 11px 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            background: #f8f9fe;
+            border: 2px solid #e0e4f5;
+            border-radius: var(--radius-xs);
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%235b6af0' d='M7 9.5L2 4h10z'/%3E%3Csvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 9px center;
+            min-height: 44px;
+            transition: all 0.2s;
+            font-family: var(--font-mono);
+            letter-spacing: 0.5px;
+        }
+        .time-block select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(91, 106, 240, 0.08);
+            background: #fff;
+        }
+        .time-separator {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+            padding-top: 18px;
+            flex-shrink: 0;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* 快捷预设 */
+        .quick-presets {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .quick-preset {
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 16px;
+            border: 1.5px solid #e0e4f5;
+            background: #fafbfd;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+        }
+        .quick-preset:active {
+            transform: scale(0.95);
+            transition: transform 0.08s;
+        }
+        .quick-preset:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .quick-preset.active {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* ========== 选项行 ========== */
+        .options-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.75rem;
+            padding: 0 2px;
+        }
+        .holiday-check {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 6px 10px;
+            border-radius: 20px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .holiday-check:hover {
+            background: #fef2f2;
+            color: var(--holiday);
+        }
+        .holiday-check input {
+            width: 17px;
+            height: 17px;
+            accent-color: var(--holiday);
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        /* ========== 实时小时显示 ========== */
+        .live-hours {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%);
+            border: 2px dashed #fcd34d;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        .live-hours.warning .hours-num {
+            color: #dc2626;
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-3px);
+            }
+            75% {
+                transform: translateX(3px);
+            }
+        }
+        .live-hours .hours-num {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #d97706;
+            font-family: var(--font-mono);
+            letter-spacing: -1px;
+            transition: color 0.3s;
+        }
+        .category-tag {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 14px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .tag-weekday {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .tag-weekend {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .tag-holiday {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* ========== 按钮 ========== */
+        .btn-save {
+            width: 100%;
+            padding: 13px 16px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+            background: var(--primary);
+            border: none;
+            border-radius: var(--radius-xs);
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(91, 106, 240, 0.3);
+            transition: all 0.25s;
+            letter-spacing: 0.4px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-save::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .btn-save:active {
+            transform: scale(0.97);
+            transition: transform 0.08s;
+            box-shadow: 0 2px 8px rgba(91, 106, 240, 0.3);
+        }
+        .btn-save:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 6px 20px rgba(91, 106, 240, 0.35);
+            transform: translateY(-1px);
+        }
+        .btn-save:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-export-group {
+            display: flex;
+            gap: 7px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-export-group button {
+            flex: 1;
+            min-width: 90px;
+            padding: 10px 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: var(--radius-xs);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            letter-spacing: 0.2px;
+        }
+        .btn-export-group button:active {
+            transform: scale(0.96);
+            transition: transform 0.08s;
+        }
+        .btn-export {
+            color: var(--primary);
+            background: #fff;
+            border: 2px solid #dde1f8;
+        }
+        .btn-export:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+        .btn-folder {
+            color: #059669;
+            background: #fff;
+            border: 2px solid #d1fae5;
+        }
+        .btn-folder:hover {
+            background: #ecfdf5;
+            border-color: #059669;
+        }
+        .btn-folder.connected {
+            color: #fff;
+            background: var(--connected);
+            border-color: var(--connected);
+            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3);
+        }
+        .btn-folder.connected:hover {
+            background: #047857;
+            border-color: #047857;
+        }
+        .btn-folder:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-import {
+            color: var(--import);
+            background: #fff;
+            border: 2px solid #e0e7ff;
+        }
+        .btn-import:hover {
+            background: #eef2ff;
+            border-color: var(--import);
+        }
+
+        /* ========== 弹窗 ========== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 18, 30, 0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .modal-overlay.closing {
+            animation: fadeOut 0.15s ease forwards;
+        }
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        .modal-dialog {
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-xl);
+            padding: 20px 16px;
+            width: 92%;
+            max-width: 400px;
+            max-height: 82vh;
+            overflow-y: auto;
+            animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            text-align: center;
+            color: var(--text);
+            letter-spacing: 0.2px;
+        }
+        .modal-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            font-size: 0.8rem;
+        }
+        .modal-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #f5f6fa;
+        }
+        .modal-table td:first-child {
+            font-weight: 600;
+            color: var(--text-secondary);
+            width: 35%;
+        }
+        .modal-table tr.highlight td {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .modal-buttons button {
+            padding: 9px 16px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: var(--radius-xs);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.2px;
+        }
+        .modal-buttons button:active {
+            transform: scale(0.95);
+            transition: transform 0.08s;
+        }
+        .btn-confirm {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 3px 10px rgba(91, 106, 240, 0.25);
+        }
+        .btn-confirm:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 5px 16px rgba(91, 106, 240, 0.35);
+        }
+        .btn-cancel {
+            background: #f1f5f9;
+            color: var(--text-secondary);
+        }
+        .btn-cancel:hover {
+            background: #e2e8f0;
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+            box-shadow: 0 3px 10px rgba(239, 68, 68, 0.25);
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+            box-shadow: 0 5px 16px rgba(239, 68, 68, 0.35);
+        }
+        .btn-import-confirm {
+            background: var(--import);
+            color: #fff;
+            box-shadow: 0 3px 10px rgba(99, 102, 241, 0.25);
+        }
+        .btn-import-confirm:hover {
+            background: #4f46e5;
+            box-shadow: 0 5px 16px rgba(99, 102, 241, 0.35);
+        }
+
+        /* 详情弹窗 */
+        .detail-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .detail-header select {
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            border: 2px solid var(--border);
+            font-family: inherit;
+            cursor: pointer;
+            background: #fafbfc;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .record-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            border-radius: var(--radius-xs);
+            background: #fafbfd;
+            padding: 4px 0;
+        }
+        .record-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .record-list::-webkit-scrollbar-thumb {
+            background: #dde1ed;
+            border-radius: 4px;
+        }
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0f2f8;
+            font-size: 0.75rem;
+            transition: background 0.15s;
+        }
+        .record-item:hover {
+            background: #f8f9fe;
+        }
+        .record-item:last-child {
+            border-bottom: none;
+        }
+        .record-item .date {
+            font-weight: 600;
+            width: 72px;
+            flex-shrink: 0;
+            color: var(--text);
+        }
+        .record-item .time {
+            color: var(--text-secondary);
+            margin: 0 5px;
+            flex-shrink: 0;
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+        }
+        .record-item .hours {
+            font-weight: 700;
+            color: var(--primary);
+            flex-shrink: 0;
+            min-width: 36px;
+            text-align: right;
+        }
+        .record-item button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-left: 3px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        .record-item button:active {
+            transform: scale(0.9);
+        }
+        .edit-btn {
+            color: var(--primary);
+        }
+        .edit-btn:hover {
+            background: var(--primary-light);
+        }
+        .delete-btn {
+            color: var(--danger);
+        }
+        .delete-btn:hover {
+            background: #fef2f2;
+        }
+        .sunday-summary {
+            background: #fff7ed;
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 0.73rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #92400e;
+            border: 1px solid #fed7aa;
+            line-height: 1.5;
+        }
+        .import-preview-list {
+            max-height: 170px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            font-size: 0.72rem;
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 8px 10px;
+            line-height: 1.8;
+            border: 1px solid var(--border);
+        }
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 28px;
+            font-weight: 700;
+            font-size: 0.78rem;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success {
+            background: #059669;
+        }
+        .toast.error {
+            background: #dc2626;
+        }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px 4px;
+            }
+            .container {
+                padding: 16px 12px 12px;
+                border-radius: 14px;
+            }
+            .stat-value {
+                font-size: 1.1rem;
+            }
+            .stat-card {
+                padding: 8px 4px;
+            }
+            .stat-label {
+                font-size: 0.6rem;
+            }
+            .time-block select {
+                padding: 10px 28px 10px 10px;
+                font-size: 0.9rem;
+                min-height: 40px;
+            }
+            .btn-export-group button {
+                min-width: 72px;
+                font-size: 0.7rem;
+                padding: 8px 5px;
+                letter-spacing: 0;
+            }
+            .quick-preset {
+                font-size: 0.64rem;
+                padding: 4px 8px;
+            }
+            .date-display {
+                font-size: 1.2rem;
+            }
+            .live-hours .hours-num {
+                font-size: 1.5rem;
+            }
+            .modal-dialog {
+                padding: 16px 12px;
+                max-width: 95%;
+            }
+        }
+        @media (min-width: 481px) {
+            .container {
+                padding: 24px 20px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 日期头部 -->
+        <div class="date-header">
+            <div class="date-main">
+                <div class="date-display" id="dateDisplay">----</div>
+                <div class="weekday-badge" id="weekdayBadge">----</div>
+            </div>
+            <input type="date" id="datePicker" class="date-input" title="选择日期">
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-row">
+            <div class="stat-card weekday" id="cardWeekday" title="点击查看工作日详情">
+                <div class="stat-label">💼 工作日</div>
+                <span class="stat-value weekday-val" id="weekdayTotal">0.0</span><span class="stat-unit">h</span>
+                <span class="stat-card-hint">点击查看</span>
+            </div>
+            <div class="stat-card weekend" id="cardWeekend" title="点击查看周末详情">
+                <div class="stat-label">🏠 周末</div>
+                <span class="stat-value weekend-val" id="weekendTotal">0.0</span><span class="stat-unit">h</span>
+                <span class="stat-card-hint">点击查看</span>
+            </div>
+            <div class="stat-card holiday" id="cardHoliday" title="点击查看节日详情">
+                <div class="stat-label">🎈 节日</div>
+                <span class="stat-value holiday-val" id="holidayTotal">0.0</span><span class="stat-unit">h</span>
+                <span class="stat-card-hint">点击查看</span>
+            </div>
+        </div>
+
+        <!-- 上月汇总 -->
+        <div class="summary-row last-month-row">
+            📅 上月加班：总计 <span class="total-value" id="lastMonthGrandTotal">0.0</span>h
+            &nbsp;| 💼<span id="lastWeekdayTotal">0.0</span> 🏠<span id="lastWeekendTotal">0.0</span> 🎈<span id="lastHolidayTotal">0.0</span>
+        </div>
+        <!-- 本月汇总 -->
+        <div class="summary-row">
+            📋 本月加班总计：<span class="total-value" id="monthlyGrandTotal">0.0</span> 小时
+        </div>
+
+        <!-- 周日提示 -->
+        <div class="sunday-hint" id="sundayHint">
+            📋 该日已记录 <span id="sundayCount">0</span>/3 个时间段
+        </div>
+
+        <!-- 时间选择 -->
+        <div class="time-row">
+            <div class="time-block">
+                <label for="startTime">⏰ 开始</label>
+                <select id="startTime"></select>
+            </div>
+            <span class="time-separator">→</span>
+            <div class="time-block">
+                <label for="endTime">🕐 结束</label>
+                <select id="endTime"></select>
+            </div>
+        </div>
+
+        <!-- 快捷预设 -->
+        <div class="quick-presets" id="quickPresets">
+            <button class="quick-preset active" data-start="18:00" data-end="20:00">18:00→20:00</button>
+            <button class="quick-preset" data-start="18:00" data-end="21:00">18:00→21:00</button>
+            <button class="quick-preset" data-start="18:00" data-end="22:00">18:00→22:00</button>
+            <button class="quick-preset" data-start="09:00" data-end="18:00">09:00→18:00</button>
+        </div>
+
+        <!-- 选项 -->
+        <div class="options-row">
+            <label class="holiday-check">
+                <input type="checkbox" id="holidayCheckbox"> 🎈 标记为节日加班
+            </label>
+        </div>
+
+        <!-- 实时小时 -->
+        <div class="live-hours" id="liveHoursDisplay">
+            <span class="hours-num" id="liveHours">2.0</span> 小时
+            <span class="category-tag tag-weekday" id="categoryTag">工作日加班</span>
+        </div>
+
+        <!-- 保存按钮 -->
+        <button class="btn-save" id="btnSave">💾 保存加班记录</button>
+
+        <!-- 底部操作按钮 -->
+        <div class="btn-export-group">
+            <button class="btn-export" id="btnExport">📜 导出记录</button>
+            <button class="btn-import" id="btnImport">📥 导入记录</button>
+            <button class="btn-folder" id="btnSetFolder">📁 本地备份</button>
+        </div>
+        <input type="file" id="importFileInput" accept=".txt" style="display:none;">
+    </div>
+
+    <!-- 确认保存弹窗 -->
+    <div class="modal-overlay" id="modalOverlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-title" id="modalTitle">确认保存</div>
+            <table class="modal-table" id="modalTable"></table>
+            <div class="modal-buttons" id="modalButtons"></div>
+        </div>
+    </div>
+
+    <!-- 相同时间处理弹窗 -->
+    <div class="modal-overlay" id="sameTimeModal" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-title">⚠️ 开始与结束时间相同</div>
+            <p style="text-align:center;margin-bottom:14px;color:var(--text-secondary);font-size:0.85rem;">请选择如何处理：</p>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="btnZeroHour">0 小时（删除当天所有记录）</button>
+                <button class="btn-confirm" id="btn24Hour">24 小时（新增一条全天记录）</button>
+            </div>
+            <div style="text-align:center;margin-top:12px;">
+                <button class="btn-cancel" id="btnCancelSame" style="font-size:0.78rem;">↩ 返回修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div class="modal-overlay" id="detailModalOverlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-title" id="detailTitle">加班详情</div>
+            <div class="detail-header">
+                <select id="detailYear"></select>
+                <select id="detailMonth"></select>
+                <span style="font-size:0.73rem;font-weight:600;color:var(--text-secondary);">分类：<strong id="detailCategoryLabel"></strong></span>
+            </div>
+            <div id="detailSundaySummary" class="sunday-summary" style="display:none;"></div>
+            <div style="text-align:center;font-size:0.75rem;margin-bottom:8px;color:var(--text-secondary);">
+                📋 当月此类总计：<span id="detailTotalHours" style="font-weight:700;color:var(--primary);">0.0</span> 小时
+            </div>
+            <div class="record-list" id="recordList"></div>
+            <div style="text-align:right;"><button class="btn-cancel" id="btnCloseDetail" style="font-size:0.8rem;">关闭</button></div>
+        </div>
+    </div>
+
+    <!-- 编辑弹窗 -->
+    <div class="modal-overlay" id="editModalOverlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-title">✏️ 修改加班记录</div>
+            <div style="margin-bottom:10px;font-size:0.85rem;font-weight:600;color:var(--text);">
+                日期：<span id="editDateDisplay"></span>
+            </div>
+            <div class="time-row">
+                <div class="time-block"><label>开始</label><select id="editStart"></select></div>
+                <span class="time-separator">→</span>
+                <div class="time-block"><label>结束</label><select id="editEnd"></select></div>
+            </div>
+            <label class="holiday-check" style="margin:10px 0;">
+                <input type="checkbox" id="editHoliday"> 🎈 节日加班
+            </label>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="btnCancelEdit">取消</button>
+                <button class="btn-confirm" id="btnSaveEdit">💾 保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入预览弹窗 -->
+    <div class="modal-overlay" id="importModalOverlay" style="display:none;">
+        <div class="modal-dialog">
+            <div class="modal-title">📥 导入预览</div>
+            <div id="importPreviewContent" style="margin-bottom:12px;"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="btnCancelImport">取消</button>
+                <button class="btn-import-confirm" id="btnConfirmImport">✅ 确认导入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function() {
+            const els = {
+                dateDisplay: document.getElementById('dateDisplay'),
+                weekdayBadge: document.getElementById('weekdayBadge'),
+                datePicker: document.getElementById('datePicker'),
+                startSelect: document.getElementById('startTime'),
+                endSelect: document.getElementById('endTime'),
+                holidayCheckbox: document.getElementById('holidayCheckbox'),
+                liveHoursEl: document.getElementById('liveHours'),
+                categoryTag: document.getElementById('categoryTag'),
+                weekdayTotal: document.getElementById('weekdayTotal'),
+                weekendTotal: document.getElementById('weekendTotal'),
+                holidayTotal: document.getElementById('holidayTotal'),
+                monthlyGrandTotal: document.getElementById('monthlyGrandTotal'),
+                lastMonthGrandTotal: document.getElementById('lastMonthGrandTotal'),
+                lastWeekdayTotal: document.getElementById('lastWeekdayTotal'),
+                lastWeekendTotal: document.getElementById('lastWeekendTotal'),
+                lastHolidayTotal: document.getElementById('lastHolidayTotal'),
+                btnSave: document.getElementById('btnSave'),
+                btnExport: document.getElementById('btnExport'),
+                btnImport: document.getElementById('btnImport'),
+                btnSetFolder: document.getElementById('btnSetFolder'),
+                importFileInput: document.getElementById('importFileInput'),
+                modalOverlay: document.getElementById('modalOverlay'),
+                modalTitle: document.getElementById('modalTitle'),
+                modalTable: document.getElementById('modalTable'),
+                modalButtons: document.getElementById('modalButtons'),
+                sameTimeModal: document.getElementById('sameTimeModal'),
+                detailModalOverlay: document.getElementById('detailModalOverlay'),
+                detailTitle: document.getElementById('detailTitle'),
+                detailYear: document.getElementById('detailYear'),
+                detailMonth: document.getElementById('detailMonth'),
+                detailCategoryLabel: document.getElementById('detailCategoryLabel'),
+                recordList: document.getElementById('recordList'),
+                detailTotalHours: document.getElementById('detailTotalHours'),
+                btnCloseDetail: document.getElementById('btnCloseDetail'),
+                editModalOverlay: document.getElementById('editModalOverlay'),
+                editDateDisplay: document.getElementById('editDateDisplay'),
+                editStart: document.getElementById('editStart'),
+                editEnd: document.getElementById('editEnd'),
+                editHoliday: document.getElementById('editHoliday'),
+                btnCancelEdit: document.getElementById('btnCancelEdit'),
+                btnSaveEdit: document.getElementById('btnSaveEdit'),
+                importModalOverlay: document.getElementById('importModalOverlay'),
+                importPreviewContent: document.getElementById('importPreviewContent'),
+                btnCancelImport: document.getElementById('btnCancelImport'),
+                btnConfirmImport: document.getElementById('btnConfirmImport'),
+                toast: document.getElementById('toast'),
+                sundayHint: document.getElementById('sundayHint'),
+                sundayCount: document.getElementById('sundayCount'),
+                detailSundaySummary: document.getElementById('detailSundaySummary'),
+                quickPresets: document.getElementById('quickPresets'),
+            };
+
+            const STORAGE_KEY = 'overtime_records_v2';
+            const DEFAULT_START = '18:00';
+            const DEFAULT_END = '20:00';
+            const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const catMapReverse = { '工作日': 'weekday', '周末': 'weekend', '节日': 'holiday' };
+            const DB_NAME = 'overtime-backup-db';
+            const DB_VERSION = 1;
+            const STORE_NAME = 'handles';
+
+            let currentDateStr = '';
+            let currentWeekDay = '';
+            let currentWeekDayIndex = -1;
+            let isInitialLoad = true;
+            let folderHandle = null;
+            let currentEditRecord = null;
+            let currentDetailCategory = 'weekday';
+            let pendingImportRecords = [];
+            let autoSaveTimer = null;
+
+            // ========== IndexedDB 操作 ==========
+            function openDB() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME);
+                        }
+                    };
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+            async function storeFolderHandle(handle) {
+                const db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    store.put(handle, 'folderHandle');
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            }
+            async function loadFolderHandle() {
+                const db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const getReq = store.get('folderHandle');
+                    getReq.onsuccess = () => resolve(getReq.result || null);
+                    getReq.onerror = () => reject(getReq.error);
+                });
+            }
+            async function clearStoredHandle() {
+                const db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    store.delete('folderHandle');
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            }
+            async function verifyHandlePermission(handle) {
+                if (!handle || !('queryPermission' in handle)) return false;
+                try {
+                    const status = await handle.queryPermission({ mode: 'readwrite' });
+                    return status === 'granted';
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            function updateBackupButtonState() {
+                if (folderHandle) {
+                    els.btnSetFolder.textContent = '✅ 备份已连接';
+                    els.btnSetFolder.classList.add('connected');
+                } else {
+                    els.btnSetFolder.textContent = '📁 本地备份';
+                    els.btnSetFolder.classList.remove('connected');
+                }
+            }
+
+            // ========== 时间选择器填充 ==========
+            function populateTimeSelects(selStart = els.startSelect, selEnd = els.endSelect, defStart = DEFAULT_START,
+                defEnd = DEFAULT_END) {
+                const times = [];
+                for (let h = 0; h < 24; h++)
+                    for (let m = 0; m < 60; m += 30)
+                        times.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+                selStart.innerHTML = '';
+                selEnd.innerHTML = '';
+                times.forEach(t => { selStart.appendChild(new Option(t, t));
+                    selEnd.appendChild(new Option(t, t)); });
+                selStart.value = defStart;
+                selEnd.value = defEnd;
+            }
+
+            // ========== 计算小时 ==========
+            function calcHours(s, e) {
+                let diff = (parseInt(e) * 60 + parseInt(e.slice(3))) - (parseInt(s) * 60 + parseInt(s.slice(3)));
+                if (diff <= 0) diff += 24 * 60;
+                return Math.round(diff / 6) / 10;
+            }
+
+            function timeToMinutes(t) {
+                const [h, m] = t.split(':').map(Number);
+                return h * 60 + m;
+            }
+
+            function hasOverlap(newStart, newEnd, existingRecords) {
+                const ns = timeToMinutes(newStart),
+                    ne = timeToMinutes(newEnd);
+                const extended = ne <= ns ? ne + 24 * 60 : ne;
+                for (const rec of existingRecords) {
+                    const es = timeToMinutes(rec.startTime);
+                    let ee = timeToMinutes(rec.endTime);
+                    if (ee <= es) ee += 24 * 60;
+                    if (ns < ee && extended > es) return true;
+                }
+                return false;
+            }
+
+            // ========== 记录存储 ==========
+            function getRecords() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch {
+                    return []; } }
+
+            function saveRecords(r) { localStorage.setItem(STORAGE_KEY, JSON.stringify(r)); }
+
+            function getTodayRecords() { return getRecords().filter(r => r.date === currentDateStr); }
+
+            function getDayOfWeekFromDate(dateStr) {
+                const date = new Date(dateStr + 'T00:00:00');
+                if (isNaN(date.getTime())) return null;
+                return weekDays[date.getDay()];
+            }
+
+            // ========== 日期设置 ==========
+            function setCurrentDate(dateStr) {
+                const date = new Date(dateStr + 'T00:00:00');
+                currentDateStr = dateStr;
+                currentWeekDayIndex = date.getDay();
+                currentWeekDay = weekDays[currentWeekDayIndex];
+                els.dateDisplay.textContent = currentDateStr;
+                els.weekdayBadge.textContent = currentWeekDay;
+                els.weekdayBadge.className = 'weekday-badge' + (currentWeekDayIndex === 0 ? ' weekend' : '');
+                updateCategoryTag();
+                updateSundayHint();
+                updateQuickPresetActive();
+            }
+
+            function updateCategoryTag() {
+                const cat = els.holidayCheckbox.checked ? 'holiday' : (currentWeekDayIndex === 0 ? 'weekend' :
+                    'weekday');
+                els.categoryTag.textContent = { weekday: '工作日加班', weekend: '周末加班', holiday: '节日加班' } [cat];
+                els.categoryTag.className = 'category-tag tag-' + cat;
+            }
+
+            function updateSundayHint() {
+                if (currentWeekDayIndex === 0) {
+                    const count = getTodayRecords().length;
+                    els.sundayCount.textContent = count;
+                    els.sundayHint.style.display = 'block';
+                } else {
+                    els.sundayHint.style.display = 'none';
+                }
+            }
+
+            function updateLiveHours() {
+                const h = calcHours(els.startSelect.value, els.endSelect.value);
+                els.liveHoursEl.textContent = h.toFixed(1);
+                els.btnSave.disabled = (h <= 0 && els.startSelect.value !== els.endSelect.value);
+                updateQuickPresetActive();
+            }
+
+            // ========== 快捷预设 ==========
+            function updateQuickPresetActive() {
+                const curStart = els.startSelect.value;
+                const curEnd = els.endSelect.value;
+                const buttons = els.quickPresets.querySelectorAll('.quick-preset');
+                buttons.forEach(btn => {
+                    if (btn.dataset.start === curStart && btn.dataset.end === curEnd) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+
+            // ========== 统计计算 ==========
+            function computeStats(prefix) {
+                const records = getRecords();
+                let wd = 0,
+                    we = 0,
+                    ho = 0;
+                records.forEach(r => {
+                    if (r.date?.startsWith(prefix)) {
+                        if (r.category === 'holiday') ho += r.hours;
+                        else if (r.category === 'weekend') we += r.hours;
+                        else wd += r.hours;
+                    }
+                });
+                return {
+                    weekday: Math.round(wd * 10) / 10,
+                    weekend: Math.round(we * 10) / 10,
+                    holiday: Math.round(ho * 10) / 10,
+                    total: Math.round((wd + we + ho) * 10) / 10
+                };
+            }
+
+            function updateAllStats() {
+                const now = new Date();
+                const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const s = computeStats(thisMonth);
+                els.weekdayTotal.textContent = s.weekday.toFixed(1);
+                els.weekendTotal.textContent = s.weekend.toFixed(1);
+                els.holidayTotal.textContent = s.holiday.toFixed(1);
+                els.monthlyGrandTotal.textContent = s.total.toFixed(1);
+
+                const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
+                const ls = computeStats(lastMonth);
+                els.lastWeekdayTotal.textContent = ls.weekday.toFixed(1);
+                els.lastWeekendTotal.textContent = ls.weekend.toFixed(1);
+                els.lastHolidayTotal.textContent = ls.holiday.toFixed(1);
+                els.lastMonthGrandTotal.textContent = ls.total.toFixed(1);
+            }
+
+            // ========== 构建记录 ==========
+            function buildRecord() {
+                const s = els.startSelect.value,
+                    e = els.endSelect.value;
+                const h = calcHours(s, e);
+                if (h <= 0 && s !== e) return null;
+                return {
+                    date: currentDateStr,
+                    dayOfWeek: currentWeekDay,
+                    category: els.holidayCheckbox.checked ? 'holiday' : (currentWeekDayIndex === 0 ? 'weekend' :
+                        'weekday'),
+                    startTime: s,
+                    endTime: e,
+                    hours: h
+                };
+            }
+
+            function saveRecord(record) {
+                const records = getRecords();
+                const todayRecords = records.filter(r => r.date === record.date);
+                if (currentWeekDayIndex === 0) {
+                    if (todayRecords.length >= 3) {
+                        showToast('⚠️ 周日最多记录3个时间段', false);
+                        return false;
+                    }
+                    if (hasOverlap(record.startTime, record.endTime, todayRecords)) {
+                        showToast('⚠️ 时段与已有记录重合，请调整时间', false);
+                        return false;
+                    }
+                    records.push(record);
+                } else {
+                    const idx = records.findIndex(r => r.date === record.date);
+                    if (idx >= 0) records[idx] = record;
+                    else records.push(record);
+                }
+                saveRecords(records);
+                return true;
+            }
+
+            // ========== 弹窗管理 ==========
+            function showSaveModal(rec) {
+                els.modalTitle.textContent = '确认保存加班记录';
+                els.modalTable.innerHTML = `
+                    <tr><td>日期</td><td>${rec.date} ${rec.dayOfWeek}</td></tr>
+                    <tr><td>类别</td><td>${{weekday:'💼 工作日',weekend:'🏠 周末',holiday:'🎈 节日'}[rec.category]}</td></tr>
+                    <tr><td>时间</td><td>${rec.startTime} → ${rec.endTime}</td></tr>
+                    <tr class="highlight"><td>时长</td><td>${rec.hours.toFixed(1)} 小时</td></tr>
+                `;
+                els.modalButtons.innerHTML = `
+                    <button class="btn-cancel" id="btnCancelModal">取消</button>
+                    <button class="btn-confirm" id="btnConfirmModal">✅ 确认保存</button>
+                `;
+                document.getElementById('btnCancelModal').onclick = closeModal;
+                document.getElementById('btnConfirmModal').onclick = () => {
+                    if (saveRecord(rec)) finishSave('✅ 已保存');
+                };
+                openModal(els.modalOverlay);
+            }
+
+            function showUpdateModal(newRec, oldRec) {
+                els.modalTitle.textContent = '⚠️ 当天已有记录';
+                els.modalTable.innerHTML = `
+                    <tr><td>现有</td><td>${oldRec.startTime}-${oldRec.endTime} ${oldRec.hours.toFixed(1)}h</td></tr>
+                    <tr><td style="color:#d97706;">新记录</td><td style="color:#d97706;">${newRec.startTime}-${newRec.endTime} ${newRec.hours.toFixed(1)}h</td></tr>
+                `;
+                els.modalButtons.innerHTML = `
+                    <button class="btn-cancel" id="btnCancelModal">取消</button>
+                    <button class="btn-danger" id="btnUpdateModal">🔄 更新</button>
+                `;
+                document.getElementById('btnCancelModal').onclick = closeModal;
+                document.getElementById('btnUpdateModal').onclick = () => {
+                    if (saveRecord(newRec)) finishSave('✅ 已更新');
+                };
+                openModal(els.modalOverlay);
+            }
+
+            function openModal(overlay) {
+                overlay.style.display = 'flex';
+                overlay.classList.remove('closing');
+            }
+
+            function closeModal() {
+                const overlay = els.modalOverlay;
+                overlay.classList.add('closing');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    overlay.classList.remove('closing');
+                }, 150);
+            }
+
+            function closeModalDirect(overlay) {
+                overlay.classList.add('closing');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    overlay.classList.remove('closing');
+                }, 150);
+            }
+
+            async function finishSave(msg) {
+                closeModal();
+                updateAllStats();
+                updateSundayHint();
+                if (folderHandle && ('showDirectoryPicker' in window)) {
+                    try {
+                        const content = generateTxt(getRecords());
+                        const blob = new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' });
+                        const fileHandle = await folderHandle.getFileHandle('jiajia.txt', { create: true });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                        showToast('✅ 已保存，备份已同步', true);
+                    } catch (error) {
+                        showToast('❌ 备份失败，请重新设置本地备份', false);
+                        folderHandle = null;
+                        updateBackupButtonState();
+                        await clearStoredHandle();
+                    }
+                } else {
+                    showToast(msg, true);
+                }
+            }
+
+            function triggerSave() {
+                if (els.modalOverlay.style.display === 'flex') closeModal();
+                if (els.sameTimeModal.style.display === 'flex') closeModalDirect(els.sameTimeModal);
+                const rec = buildRecord();
+                if (!rec) { showToast('⚠️ 时间无效', false); return; }
+                if (els.startSelect.value === els.endSelect.value) {
+                    openModal(els.sameTimeModal);
+                    return;
+                }
+                if (currentWeekDayIndex === 0) {
+                    if (getTodayRecords().length >= 3) {
+                        showToast('⚠️ 该周日已达3个时间段上限', false);
+                        return;
+                    }
+                    showSaveModal(rec);
+                } else {
+                    const existing = getRecords().find(r => r.date === rec.date);
+                    if (existing) showUpdateModal(rec, existing);
+                    else showSaveModal(rec);
+                }
+            }
+
+            function scheduleAutoSave() {
+                clearTimeout(autoSaveTimer);
+                if (!isInitialLoad) {
+                    autoSaveTimer = setTimeout(triggerSave, 800);
+                }
+            }
+
+            // ========== 解析导入文件 ==========
+            function parseTxtContent(content) {
+                const records = [];
+                const lines = content.split(/\r?\n/);
+                let currentDate = null;
+                let currentDayOfWeek = null;
+                let currentCategory = 'weekday';
+                let inSummary = false;
+                const dateLineRegex = /^(\d{4}-\d{2}-\d{2})\s+(星期[一二三四五六日])?\s*(工作日|周末|节日)/;
+                const timeLineRegex = /^\s+(\d{1,2}:\d{2})\s*[→]\s*(\d{1,2}:\d{2})\s+(\d+\.?\d*)h/;
+                const summaryHeaderRegex = /月度汇总/;
+                for (const line of lines) {
+                    if (summaryHeaderRegex.test(line)) { inSummary = true; continue; }
+                    if (inSummary) continue;
+                    if (/^═/.test(line) && line.includes('加班记录')) continue;
+                    if (/^生成时间/.test(line)) continue;
+                    if (/^─{5,}/.test(line)) continue;
+                    if (/^═{5,}/.test(line)) continue;
+                    const dateMatch = line.match(dateLineRegex);
+                    if (dateMatch) {
+                        currentDate = dateMatch[1];
+                        currentDayOfWeek = dateMatch[2] || getDayOfWeekFromDate(currentDate) || '';
+                        const catText = dateMatch[3];
+                        currentCategory = catMapReverse[catText] || 'weekday';
+                        continue;
+                    }
+                    const timeMatch = line.match(timeLineRegex);
+                    if (timeMatch && currentDate) {
+                        const startTime = timeMatch[1].padStart(5, '0');
+                        const endTime = timeMatch[2].padStart(5, '0');
+                        const hours = parseFloat(timeMatch[3]);
+                        const dayOfWeek = currentDayOfWeek || getDayOfWeekFromDate(currentDate) || '';
+                        records.push({
+                            date: currentDate,
+                            dayOfWeek: dayOfWeek,
+                            category: currentCategory,
+                            startTime: startTime,
+                            endTime: endTime,
+                            hours: hours
+                        });
+                    }
+                }
+                return records;
+            }
+
+            function showImportPreview(records) {
+                pendingImportRecords = records;
+                const catCount = { weekday: 0, weekend: 0, holiday: 0 };
+                records.forEach(r => { catCount[r.category] = (catCount[r.category] || 0) + 1; });
+                const totalHours = records.reduce((s, r) => s + r.hours, 0);
+                let previewHtml = `
+                    <p style="text-align:center;font-weight:700;margin-bottom:8px;color:var(--text);">共解析出 <span style="color:#6366f1;">${records.length}</span> 条记录，合计 <span style="color:#6366f1;">${totalHours.toFixed(1)}</span> 小时</p>
+                    <p style="text-align:center;font-size:0.7rem;margin-bottom:8px;color:var(--text-secondary);">💼工作日:${catCount.weekday}条 | 🏠周末:${catCount.weekend}条 | 🎈节日:${catCount.holiday}条</p>
+                    <div class="import-preview-list">
+                `;
+                const showRecords = records.slice(0, 15);
+                showRecords.forEach(r => {
+                    previewHtml +=
+                        `<div>${r.date} ${r.dayOfWeek} ${r.startTime}→${r.endTime} ${r.hours.toFixed(1)}h ${ {weekday:'💼',weekend:'🏠',holiday:'🎈'}[r.category] }</div>`;
+                });
+                if (records.length > 15) previewHtml +=
+                    `<div style="color:#64748b;">... 还有 ${records.length - 15} 条记录</div>`;
+                previewHtml +=
+                    '</div><p style="font-size:0.65rem;color:#64748b;text-align:center;">导入将合并到现有记录（相同日期+开始时间的记录将被覆盖）</p>';
+                els.importPreviewContent.innerHTML = previewHtml;
+                openModal(els.importModalOverlay);
+            }
+
+            async function executeImport() {
+                const records = getRecords();
+                for (const rec of pendingImportRecords) {
+                    const isSunday = rec.dayOfWeek === '星期日';
+                    const existingIdx = records.findIndex(r => r.date === rec.date && r.startTime === rec
+                        .startTime);
+                    if (existingIdx >= 0) {
+                        records[existingIdx] = rec;
+                    } else if (isSunday) {
+                        records.push(rec);
+                    } else {
+                        const sameDateIdx = records.findIndex(r => r.date === rec.date);
+                        if (sameDateIdx >= 0) records[sameDateIdx] = rec;
+                        else records.push(rec);
+                    }
+                }
+                saveRecords(records);
+                closeModalDirect(els.importModalOverlay);
+                updateAllStats();
+                updateSundayHint();
+                showToast(`✅ 成功导入 ${pendingImportRecords.length} 条记录`, true);
+                await writeBackupFile();
+                pendingImportRecords = [];
+            }
+
+            function handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        let content = e.target.result;
+                        if (content.charCodeAt(0) === 0xFEFF) content = content.slice(1);
+                        const records = parseTxtContent(content);
+                        if (records.length === 0) showToast('⚠️ 未能从文件中解析到有效记录', false);
+                        else showImportPreview(records);
+                    } catch (err) { showToast('❌ 文件读取失败，请检查文件格式', false); }
+                };
+                reader.onerror = () => showToast('❌ 文件读取失败', false);
+                reader.readAsText(file, 'utf-8');
+                els.importFileInput.value = '';
+            }
+
+            async function writeBackupFile() {
+                if (!folderHandle || !('showDirectoryPicker' in window)) return;
+                try {
+                    const content = generateTxt(getRecords());
+                    const blob = new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' });
+                    const fileHandle = await folderHandle.getFileHandle('jiajia.txt', { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                } catch (e) {
+                    console.error('静默备份失败:', e);
+                }
+            }
+
+            function generateTxt(records) {
+                let txt = '══════════════ 加班记录 ══════════════\n';
+                const now = new Date().toLocaleString('zh-CN');
+                txt += `生成时间：${now}\n\n`;
+                const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+                const catMap = { weekday: '工作日', weekend: '周末', holiday: '节日' };
+                let lastDate = '';
+                const monthStats = {};
+                sorted.forEach(r => {
+                    const ym = r.date.substring(0, 7);
+                    if (!monthStats[ym]) monthStats[ym] = { weekday: 0, weekend: 0, holiday: 0, total: 0 };
+                    monthStats[ym][r.category] += r.hours;
+                    monthStats[ym].total += r.hours;
+                    if (r.date !== lastDate) {
+                        txt += `\n${r.date} ${r.dayOfWeek || ''}  ${catMap[r.category]}\n`;
+                        txt += '─'.repeat(30) + '\n';
+                        lastDate = r.date;
+                    }
+                    txt += `  ${r.startTime} → ${r.endTime}  ${r.hours.toFixed(1)}h\n`;
+                });
+                txt += '\n══════════ 月度汇总 ══════════\n';
+                const sortedMonths = Object.keys(monthStats).sort();
+                sortedMonths.forEach(ym => {
+                    const ms = monthStats[ym];
+                    txt +=
+                        `${ym}  工作日:${ms.weekday.toFixed(1)}h  周末:${ms.weekend.toFixed(1)}h  节日:${ms.holiday.toFixed(1)}h  总计:${ms.total.toFixed(1)}h\n`;
+                });
+                return txt;
+            }
+
+            function showToast(msg, ok = true) {
+                clearTimeout(window.toastTimer);
+                els.toast.textContent = msg;
+                els.toast.className = 'toast ' + (ok ? 'success' : 'error');
+                els.toast.classList.add('show');
+                window.toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+            }
+
+            async function setupBackupFolder() {
+                if (!('showDirectoryPicker' in window)) {
+                    showToast('❌ 浏览器不支持此功能', false);
+                    return;
+                }
+                try {
+                    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    folderHandle = handle;
+                    await storeFolderHandle(handle);
+                    updateBackupButtonState();
+                    showToast('✅ 备份已设置', true);
+                    const content = generateTxt(getRecords());
+                    const blob = new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' });
+                    const fileHandle = await folderHandle.getFileHandle('jiajia.txt', { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                } catch (e) {
+                    // 用户取消选择
+                }
+            }
+
+            // ========== 事件绑定 ==========
+            els.datePicker.valueAsDate = new Date();
+            els.datePicker.addEventListener('change', () => {
+                setCurrentDate(els.datePicker.value);
+                updateLiveHours();
+                updateAllStats();
+            });
+            els.startSelect.addEventListener('change', () => {
+                updateLiveHours();
+                scheduleAutoSave();
+            });
+            els.endSelect.addEventListener('change', () => {
+                updateLiveHours();
+                scheduleAutoSave();
+            });
+            els.holidayCheckbox.addEventListener('change', updateCategoryTag);
+            els.btnSave.addEventListener('click', () => {
+                clearTimeout(autoSaveTimer);
+                triggerSave();
+            });
+            els.btnExport.addEventListener('click', () => {
+                const blob = new Blob(['\uFEFF' + generateTxt(getRecords())], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'jiajia.txt';
+                a.click();
+                showToast('✅ 已导出 jiajia.txt', true);
+            });
+            els.btnImport.addEventListener('click', () => els.importFileInput.click());
+            els.importFileInput.addEventListener('change', handleFileSelect);
+            els.btnSetFolder.addEventListener('click', setupBackupFolder);
+
+            // 快捷预设点击
+            els.quickPresets.addEventListener('click', (e) => {
+                const btn = e.target.closest('.quick-preset');
+                if (!btn) return;
+                els.startSelect.value = btn.dataset.start;
+                els.endSelect.value = btn.dataset.end;
+                updateLiveHours();
+                updateQuickPresetActive();
+                scheduleAutoSave();
+            });
+
+            // 相同时间弹窗按钮
+            document.getElementById('btnZeroHour').onclick = async () => {
+                closeModalDirect(els.sameTimeModal);
+                const todayRecords = getTodayRecords();
+                if (todayRecords.length > 0) {
+                    const records = getRecords().filter(r => r.date !== currentDateStr);
+                    saveRecords(records);
+                    updateAllStats();
+                    updateSundayHint();
+                    showToast('🗑️ 当天所有记录已删除', true);
+                    await writeBackupFile();
+                } else showToast('ℹ️ 当天无记录', true);
+            };
+            document.getElementById('btn24Hour').onclick = () => {
+                closeModalDirect(els.sameTimeModal);
+                const rec = { ...buildRecord(), hours: 24 };
+                if (currentWeekDayIndex === 0) {
+                    if (getTodayRecords().length >= 3) { showToast('⚠️ 周日已达上限', false); return; }
+                    showSaveModal(rec);
+                } else {
+                    const existing = getRecords().find(r => r.date === rec.date);
+                    if (existing) showUpdateModal(rec, existing);
+                    else showSaveModal(rec);
+                }
+            };
+            document.getElementById('btnCancelSame').onclick = () => closeModalDirect(els.sameTimeModal);
+
+            // ========== 详情弹窗 ==========
+            function openDetailModal(cat) {
+                currentDetailCategory = cat;
+                els.detailTitle.textContent = { weekday: '💼 工作日', weekend: '🏠 周末', holiday: '🎈 节日' } [cat] +
+                    ' 详情';
+                els.detailCategoryLabel.textContent = { weekday: '💼 工作日', weekend: '🏠 周末', holiday: '🎈 节日' } [cat];
+                const now = new Date();
+                els.detailYear.innerHTML = Array.from({ length: 5 }, (_, i) =>
+                    `<option value="${now.getFullYear() - i}" ${i === 0 ? 'selected' : ''}>${now.getFullYear() - i}年</option>`
+                ).join('');
+                els.detailMonth.innerHTML = Array.from({ length: 12 }, (_, i) =>
+                    `<option value="${String(i + 1).padStart(2, '0')}" ${i === now.getMonth() ? 'selected' : ''}>${i + 1}月</option>`
+                ).join('');
+                renderDetailList();
+                openModal(els.detailModalOverlay);
+            }
+
+            function renderDetailList() {
+                const y = els.detailYear.value,
+                    m = els.detailMonth.value;
+                const prefix = `${y}-${m}`;
+                const records = getRecords().filter(r => r.date?.startsWith(prefix) && r.category ===
+                    currentDetailCategory);
+                const sundayMap = {};
+                records.forEach(r => { if (r.dayOfWeek === '星期日') sundayMap[r.date] = (sundayMap[r.date] || 0) + r
+                        .hours; });
+                const sundayKeys = Object.keys(sundayMap);
+                if (sundayKeys.length > 0) {
+                    const lines = sundayKeys.map(date => `${date} 总 ${sundayMap[date].toFixed(1)}h`).join(' ； ');
+                    els.detailSundaySummary.textContent = `🏠 周日合计：${lines}`;
+                    els.detailSundaySummary.style.display = 'block';
+                } else els.detailSundaySummary.style.display = 'none';
+                els.detailTotalHours.textContent = records.reduce((s, r) => s + r.hours, 0).toFixed(1);
+                els.recordList.innerHTML = records.length ? records.map(r => `
+                    <div class="record-item">
+                        <span class="date">${r.date} ${r.dayOfWeek}</span>
+                        <span class="time">${r.startTime}-${r.endTime}</span>
+                        <span class="hours">${r.hours.toFixed(1)}h</span>
+                        <button class="edit-btn" data-date="${r.date}" data-start="${r.startTime}" title="编辑">✏️</button>
+                        <button class="delete-btn" data-date="${r.date}" data-start="${r.startTime}" title="删除">🗑️</button>
+                    </div>
+                `).join('') : '<div class="no-data">暂无记录</div>';
+                document.querySelectorAll('#recordList .edit-btn').forEach(b => {
+                    b.onclick = (e) => openEditModal(e.target.dataset.date, e.target.dataset.start);
+                });
+                document.querySelectorAll('#recordList .delete-btn').forEach(b => {
+                    b.onclick = async (e) => {
+                        if (confirm('确定删除该时段？')) {
+                            const date = e.target.dataset.date,
+                                start = e.target.dataset.start;
+                            const records = getRecords().filter(r => !(r.date === date && r
+                                .startTime === start));
+                            saveRecords(records);
+                            updateAllStats();
+                            updateSundayHint();
+                            renderDetailList();
+                            showToast('🗑️ 已删除', true);
+                            await writeBackupFile();
+                        }
+                    };
+                });
+            }
+
+            function openEditModal(date, start) {
+                const record = getRecords().find(r => r.date === date && r.startTime === start);
+                if (!record) return;
+                currentEditRecord = record;
+                els.editDateDisplay.textContent = record.date + ' ' + record.dayOfWeek;
+                populateTimeSelects(els.editStart, els.editEnd, record.startTime, record.endTime);
+                els.editHoliday.checked = record.category === 'holiday';
+                openModal(els.editModalOverlay);
+            }
+
+            async function saveEdit() {
+                if (!currentEditRecord) return;
+                const s = els.editStart.value,
+                    e = els.editEnd.value;
+                if (s === e) { showToast('⚠️ 时间不能相同', false); return; }
+                const hours = calcHours(s, e);
+                const updated = {
+                    ...currentEditRecord,
+                    startTime: s,
+                    endTime: e,
+                    hours,
+                    category: els.editHoliday.checked ? 'holiday' : (currentEditRecord.dayOfWeek === '星期日' ?
+                        'weekend' : 'weekday')
+                };
+                const records = getRecords();
+                const idx = records.findIndex(r => r.date === updated.date && r.startTime === currentEditRecord
+                    .startTime);
+                if (idx >= 0) {
+                    if (currentEditRecord.dayOfWeek === '星期日') {
+                        const otherRecords = records.filter((_, i) => i !== idx);
+                        const todayOthers = otherRecords.filter(r => r.date === updated.date);
+                        if (hasOverlap(updated.startTime, updated.endTime, todayOthers)) {
+                            showToast('⚠️ 修改后时段与已有记录重合', false);
+                            return;
+                        }
+                    }
+                    records[idx] = updated;
+                } else records.push(updated);
+                saveRecords(records);
+                closeModalDirect(els.editModalOverlay);
+                updateAllStats();
+                updateSundayHint();
+                renderDetailList();
+                showToast('✅ 已更新', true);
+                await writeBackupFile();
+            }
+
+            document.getElementById('cardWeekday').onclick = () => openDetailModal('weekday');
+            document.getElementById('cardWeekend').onclick = () => openDetailModal('weekend');
+            document.getElementById('cardHoliday').onclick = () => openDetailModal('holiday');
+            els.detailYear.onchange = renderDetailList;
+            els.detailMonth.onchange = renderDetailList;
+            els.btnCloseDetail.onclick = () => closeModalDirect(els.detailModalOverlay);
+            els.btnCancelEdit.onclick = () => closeModalDirect(els.editModalOverlay);
+            els.btnSaveEdit.onclick = saveEdit;
+            els.btnCancelImport.onclick = () => { closeModalDirect(els.importModalOverlay);
+                pendingImportRecords = []; };
+            els.btnConfirmImport.onclick = executeImport;
+
+            // 点击弹窗遮罩关闭
+            [els.modalOverlay, els.sameTimeModal, els.detailModalOverlay, els.editModalOverlay, els.importModalOverlay]
+            .forEach(overlay => {
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeModalDirect(this);
+                        if (this === els.importModalOverlay) pendingImportRecords = [];
+                    }
+                });
+            });
+
+            // ========== 初始化 ==========
+            async function init() {
+                try {
+                    const savedHandle = await loadFolderHandle();
+                    if (savedHandle) {
+                        const isValid = await verifyHandlePermission(savedHandle);
+                        if (isValid) {
+                            folderHandle = savedHandle;
+                        } else {
+                            await clearStoredHandle();
+                            showToast('⚠️ 备份连接已失效，请重新设置', false);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('恢复备份句柄失败:', e);
+                }
+                updateBackupButtonState();
+
+                const today = new Date();
+                const dateStr = today.toISOString().split('T')[0];
+                els.datePicker.value = dateStr;
+                setCurrentDate(dateStr);
+                populateTimeSelects();
+                updateLiveHours();
+                updateAllStats();
+                updateQuickPresetActive();
+                setTimeout(() => isInitialLoad = false, 200);
+            }
+            init();
+        })();
+    </script>
+</body>
+</html>
